@@ -1,0 +1,34 @@
+openapi: 3.0.3
+info:
+  title: Office-cam-detect
+  version: 1.0.0
+  contact: {}
+servers:
+  - url: http://localhost:8000
+paths:
+  /api/user/auth_token/:
+    post:
+      summary: New Request
+      description: New Request
+      operationId: newRequest
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                password:
+                  type: string
+                  example: PASS
+                username:
+                  type: string
+                  example: Some
+            examples:
+              New Request:
+                value:
+                  password: PASS
+                  username: Some
+      responses:
+        '200':
+          description: ''
+tags: []

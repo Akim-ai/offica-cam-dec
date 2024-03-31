@@ -1,0 +1,17 @@
+FROM python:3.10
+
+WORKDIR /
+
+
+COPY data_process/requirements_data_process.txt requirements.txt
+COPY requirements_shared.txt requirements_shared.txt
+RUN pip3 install --upgrade pip
+RUN --mount=type=cache,target=/root/.cache \
+     pip3 install -r requirements.txt
+RUN --mount=type=cache,target=/root/.cache \
+     pip3 install -r requirements_shared.txt
+
+COPY data_process /src/image_processing/data_process
+COPY ../shared /src/image_processing/shared
+
+COPY run_data_process.py .

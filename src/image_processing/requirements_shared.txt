@@ -1,0 +1,4 @@
+pydantic==2.5.2
+faststream
+aioredis==2.0.1
+aio-pika

@@ -1,0 +1,32 @@
+version: '3'
+services:
+  db:
+    image: postgres:14
+    container_name: db
+    environment:
+      POSTGRES_USER: 'your_username'
+      POSTGRES_PASSWORD: 'your_password'
+      POSTGRES_DB: 'your_database'
+    ports:
+      - 5432:5432
+    volumes:
+      - ./data:/var/lib/postgresql/data
+  rabbitmq:
+    image: rabbitmq:management
+    container_name: rabbitmq
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+  redis:
+      image: redis:latest
+      ports:
+          - 6379:6379
+      volumes:
+          - ./config/redis.conf:/redis.conf
+      command: [ "redis-server", "/redis.conf" ]
+networks:
+  default:
+    driver: bridge
