@@ -42,6 +42,7 @@ class FaceIdentification:
         detected_faces = await self.__broker.publish('', queue=queue_get_all_detected_users, rpc=True)
         if not detected_faces:
             print('no faces')
+            return
         detected_faces = IListUserWithImage.model_validate_json(detected_faces)
         for user in detected_faces.users:
             frame = self.serialize_frame(frame=user.get("detected_image"))

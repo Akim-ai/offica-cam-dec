@@ -1,7 +1,7 @@
 import asyncio
 import hashlib
 
-from sqlalchemy import Column, Integer, String, create_engine, Boolean
+from sqlalchemy import Column, Integer, String, UniqueConstraint, create_engine, Boolean
 from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncSession
 
 from src.Database.Main.DB import DBSession
@@ -10,6 +10,9 @@ from src.Database.Main.base import Base
 
 
 class User(CreateTableName, Base):
+
+    __table_args__ = (UniqueConstraint('username', 'password', name='_username_password_uc'),)
+    
     id = Column(
         'id', Integer,
         primary_key=True, autoincrement=True,
@@ -43,7 +46,7 @@ class User(CreateTableName, Base):
     )
 
     @staticmethod
-    def __hash_password(password: str) -> str:
+    def hash_password(password: str) -> str:
         hash_object = hashlib.sha512()
 
         # Encode the password to bytes and hash it
@@ -53,11 +56,11 @@ class User(CreateTableName, Base):
         return hash_object.hexdigest()
 
     def set_password(self, password: str) -> None:
-        hashed_password = self.__hash_password(password=password)
+        hashed_password = self.hash_password(password=password)
         self.password = hashed_password
 
     def check_password(self, password: str) -> bool:
-        return self.__hash_password(password=password) == self.password
+        return self.hash_password(password=password) == self.password
 
 
 if __name__ == '__main__':

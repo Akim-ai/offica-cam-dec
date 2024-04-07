@@ -55,7 +55,8 @@ class DataGetController:
     async def close(self):
         await self.__session.close()
 
-    async def data_get_factory(self, data: IDataGetFactory):
+    async def data_get_factory(self, data: dict):
+        data: IDataGetFactory = IDataGetFactory.model_validate(data, from_attributes=True)
         data_get: DataGet = DataGet(
             id_=data.id_, local_address=data.local_address,
             session=self.__session, redis=self.__redis,

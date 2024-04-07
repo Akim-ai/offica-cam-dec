@@ -40,10 +40,12 @@ async def get_list_users(request: Request):
 async def create_user(request: Request):
     start = time.perf_counter()
     user = IUserWithImage.model_validate_json(request.body)
+    if not user.username or not user.password:
+        return json({"error": "Invalid Credetials"}, status=220)
     app = Sanic.get_app()
     broker: RabbitBroker = app.ctx.broker
     print('before send')
-    user = await broker.publish(message=user.model_dump_json(), queue=queue_create_user, exchange=exch, rpc=True)
+    user = await broker.publish(message=user.model_dump(), queue=queue_create_user, exchange=exch, rpc=True)
     print(user)
     print(time.perf_counter() - start)
     return json({"data": user}, status=201)

@@ -1,7 +1,7 @@
 import os
 
 from dotenv import load_dotenv
-from sanic import NotFound, Sanic
+from sanic import HTTPResponse, NotFound, Sanic, file
 from sanic.response import empty
 from sanic_ext import Extend
 
@@ -22,7 +22,7 @@ def _add_cors_headers(response, methods: Iterable[str]) -> None:
         allow_methods.append("OPTIONS")
     headers = {
         "Access-Control-Allow-Methods": ",".join(allow_methods),
-        "Access-Control-Allow-Origin": "http://127.0.0.1:5173",
+        "Access-Control-Allow-Origin": "http://127.0.0.1:5173 http://127.0.0.1:8000 http://localhost:8000",
         "Access-Control-Allow-Credentials": "true",
         "Access-Control-Allow-Headers": (
             "origin, content-type, accept, "
@@ -76,17 +76,36 @@ def setup_options(app: Sanic, _):
 app = Sanic('some', strict_slashes=True)
 
 app.blueprint(backend_bp,)
-
-
+app.static("/login", "static/login/login.html", name="login")
+app.static("/login/", "static/login/", name="login-static-files")
 app.register_listener(setup_options, "before_server_start")
 
 # Fill in CORS headers
 app.register_middleware(add_cors_headers, "response")
 
+@app.route('/assets/<filename>')
+async def assets(request, filename):
+    return await file(os.path.join('./src/front/dist/assets', filename))
 
-Extend(app, cors=True, cors_config={
-    "origins": ["http://127.0.0.1:5173"],
-    "allow_methods": ["GET", "POST", "OPTIONS"],  # Allow necessary methods
+# Catch-all route for serving React app
+@app.route('/<path:path>')
+async def serve_app(request, path):
+    if not path.startswith('api/') and not path.startswith('static/'):
+        if path == "login":
+            return 
+        return await file('./src/front/dist/index.html')
+    return HTTPResponse(body="", status=200)
+
+
+# Optionally, to catch the root and any other path not covered above
+@app.route('/')
+async def index(request):
+    return await file('./src/front/dist/index.html')
+
+
+Extend(app, cors_config={
+    "origins": ["http://127.0.0.1:5173", "http://127.0.0.1:8000", "http://localhost:8000"],
+    "allow_methods": ["GET", "POST", "OPTIONS", "PUT", "PATCH"],  # Allow necessary methods
     "allow_headers": ["Content-Type"],  # Allow necessary headers
     "allow_credentials": True,  # Optional, based on your needs
     "expose_headers": [],  # Optional, headers you wish to expose
@@ -97,6 +116,11 @@ BASE_DIR = os.path.dirname(os.path.realpath(__file__))
 
 
 app.config.OAS_CUSTOM_FILE = f'{BASE_DIR}/src/backend/config/schema.yaml'
+app.config.secret = "abs" # only for dev
+
+# JWT
+app.config.jwt_alg = "HS256"
+
 app.ext.openapi.add_security_scheme(
     "token",
     "http",

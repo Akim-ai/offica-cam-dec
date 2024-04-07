@@ -34,7 +34,7 @@ async def delete_user(msg: int) -> int:
     return await UserController.delete_user(user_id=msg)
 
 
-async def get_auth_user(msg: AuthLoginData):
+async def get_auth_user(msg: AuthLoginData) -> dict:
     return await UserController.get_auth_user(data=msg)
 
 async def init_controller():

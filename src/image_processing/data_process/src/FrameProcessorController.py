@@ -45,6 +45,8 @@ class FrameProcessorController:
         await self.__face_identification.async_init()
 
         frame_processors = await self.__broker.publish('', queue=queue_get_frame_processors, exchange=exch, rpc=True)
+        if not frame_processors:
+            return
         await self.__create_frame_processors(frame_processors)
 
     async def __create_frame_processors(self, frame_processors: str):

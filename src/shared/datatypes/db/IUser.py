@@ -11,6 +11,7 @@ class IUser(BaseModel):
     first_name: str
     last_name: str
     detected_path_image: str = ''
+    username: str = ""
 
     def __repr__(self):
         return f'{self.id}-{self.first_name}-{self.last_name}'

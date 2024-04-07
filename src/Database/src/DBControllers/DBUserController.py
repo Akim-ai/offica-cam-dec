@@ -1,3 +1,4 @@
+import hashlib
 import os
 import uuid
 from pprint import pprint
@@ -33,6 +34,16 @@ class DBUserController(SessionManager):
 
     __save_path: str = 'users_detected'
 
+    @staticmethod
+    def hash_password(password: str):
+        hash_object = hashlib.sha512()
+
+        # Encode the password to bytes and hash it
+        hash_object.update(password.encode('utf-8'))
+
+        # Return the hexadecimal representation of the hash
+        return hash_object.hexdigest()
+
     async def get_all_detected_users(self):
         try:
             users_result = IListUserWithImage()
@@ -45,7 +56,7 @@ class DBUserController(SessionManager):
                 path = os.getcwd()
                 for user in all_users:
                     user: User
-                    async with aiofiles.open(f'{path}/{user.detected_path_image}', 'rb') as out_file:
+                    async with aiofiles.open(f'{path}/static/{user.detected_path_image}', 'rb') as out_file:
                         image = await out_file.read()
                     users_result.users.append(IUserWithImage(
                         id=user.id, first_name=user.first_name,
@@ -114,6 +125,8 @@ class DBUserController(SessionManager):
         user: User = User(first_name=data.first_name, last_name=data.last_name)
         if data.password:
             user.set_password(data.password)
+        if data.username:
+            user.username = data.username
         
         raw_user_select = """
                             SELECT id
@@ -123,7 +136,7 @@ class DBUserController(SessionManager):
                             detected_path_image = :detected_image
                          """
 
-        path_with_image: str = f'{self.__save_path}/{uuid.uuid4()}.jpg'
+        path_with_image: str = f'static/{self.__save_path}/{uuid.uuid4()}.jpg'
         async with self.session() as conn:
             conn: AsyncSession
             user.detected_path_image = path_with_image
@@ -155,7 +168,8 @@ class DBUserController(SessionManager):
                 id=user_id, first_name=data.first_name, 
                 last_name=data.last_name,
                 detected_path_image=path_with_image,
-                ).model_dump()
+                username=data.username
+                ).model_dump(exclude=["password"])
         return user
 
     async def delete_user(self, user_id: int):
@@ -163,7 +177,8 @@ class DBUserController(SessionManager):
         raw_user_delete = """
         UPDATE "user"
         SET is_disabled = True
-        WHERE id = :user_id
+        WHERE id = :user_id and
+        is_disabled = FALSE
         """
 
         raw_user_get = """
@@ -201,25 +216,32 @@ class DBUserController(SessionManager):
 
     async def get_auth_user(self, data: AuthLoginData):
         raw_select = """
-        SELECT id, first_name, last_name
+        SELECT id, first_name, last_name,
+        detected_path_image, username, password
         FROM "user"
         WHERE is_disabled = FALSE AND
         password = :password AND
         username = :username 
         """
-
+        
         async with self.session() as conn:
             conn: AsyncSession
             result = await conn.execute(text(raw_select), {
-                'password': data.password,
+                'password': User.hash_password(data.password),
                 'username': data.username
             })
-            user = result.scalars().first()
+            user = result.first()
             if not user:
                 return {'error': 'Invalid credentials'}
+            print(user)
+            if self.hash_password(data.password) != user[5]:
+                return {"error": "Invalid credentials"}
 
             return IUser(
                 id=user[0],
                 first_name=user[1],
                 last_name=user[2],
-            )
+                detected_path_image=user[3],
+                username=user[4]
+            ).model_dump(exclude=["password"])
+
